@@ -1,0 +1,15 @@
+{
+  "name": "super-agent-mcp",
+  "version": "1.0.0",
+  "description": "Sistema super-agent specializzato per Claude Code",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.100.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.4.2"
+  }
+}
