@@ -74,6 +74,7 @@ async function callAgentWithContext7(agentKey, agent, userMessage, context) {
 
   const tools = [
     ...(agent.useWebSearch ? [{ type: "web_search_20250305", name: "web_search" }] : []),
+    ...(agent.useWebFetch ? [{ type: "web_fetch_20250124", name: "web_fetch" }] : []),
     ...c7Tools,
   ];
 
@@ -95,8 +96,9 @@ async function callAgentWithContext7(agentKey, agent, userMessage, context) {
       finalText = textBlocks.map((b) => b.text).join("\n");
     }
 
+    const SERVER_SIDE_TOOLS = new Set(["web_search", "web_fetch"]);
     const toolUseBlocks = response.content.filter(
-      (b) => b.type === "tool_use" && b.name !== "web_search"
+      (b) => b.type === "tool_use" && !SERVER_SIDE_TOOLS.has(b.name)
     );
 
     if (response.stop_reason === "end_turn" || toolUseBlocks.length === 0) break;
@@ -145,9 +147,11 @@ async function callAgent(agentKey, userMessage, context = "") {
     ? `## Contesto dagli agenti precedenti:\n${truncated}\n\n## Il tuo task:\n${userMessage}`
     : userMessage;
 
-  const tools = agent.useWebSearch
-    ? [{ type: "web_search_20250305", name: "web_search" }]
-    : undefined;
+  const searchTools = [
+    ...(agent.useWebSearch ? [{ type: "web_search_20250305", name: "web_search" }] : []),
+    ...(agent.useWebFetch ? [{ type: "web_fetch_20250124", name: "web_fetch" }] : []),
+  ];
+  const tools = searchTools.length > 0 ? searchTools : undefined;
 
   const requestBody = {
     model: agent.model ?? "claude-sonnet-4-6",
