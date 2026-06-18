@@ -89,6 +89,33 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: "security_audit",
+    description:
+      "Esegue un audit di sicurezza completo sul codice fornito usando l'agente cybersecurity. Analizza vulnerabilità OWASP, problemi specifici di Next.js, Supabase, Stripe, autenticazione, rate limiting, CSRF, esposizione dati sensibili e altro. Restituisce un report strutturato con livelli di rischio (Critical/High/Medium/Low) e remediation concrete.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          description: "Il codice sorgente da analizzare (incolla uno o più file rilevanti)",
+        },
+        stack: {
+          type: "string",
+          description: "Stack tecnologico del progetto (es. 'Next.js 15, Supabase, Stripe, Zustand')",
+        },
+        focus: {
+          type: "string",
+          description: "Area specifica su cui concentrare l'analisi (opzionale, es. 'autenticazione', 'pagamenti', 'admin routes')",
+        },
+        package_json: {
+          type: "string",
+          description: "Contenuto del package.json (opzionale ma consigliato: abilita il CVE scan automatico su tutte le dipendenze)",
+        },
+      },
+      required: ["code"],
+    },
+  },
 ];
 
 // ============================================================
@@ -242,6 +269,60 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       ].join("\n");
 
       return { content: [{ type: "text", text: previewText }] };
+    }
+
+    // ── Tool: security_audit ──────────────────────────────
+    if (name === "security_audit") {
+      const { code, stack, focus, package_json } = args;
+
+      const focusLine = focus ? `\n\nArea di focus richiesta: **${focus}**` : "";
+      const stackLine = stack ? `\nStack tecnologico: **${stack}**` : "";
+      const pkgSection = package_json
+        ? `\n\n## package.json (usa questo per il CVE scan):\n\`\`\`json\n${package_json}\n\`\`\``
+        : "";
+      const cveInstruction = package_json
+        ? `- **CVE scan**: per ogni dipendenza nel package.json esegui una ricerca web per CVE note. Usa web_search e web_fetch su NIST NVD e GitHub Advisory Database. Riporta CVE ID, CVSS score, versione affetta, fixed-in e comando di aggiornamento.`
+        : `- **CVE scan**: non è stato fornito un package.json. Se riesci a dedurre le dipendenze dallo stack o dal codice, cerca comunque CVE per i framework principali rilevati.`;
+
+      const task = [
+        `Esegui un security audit completo del seguente codice.${stackLine}${focusLine}`,
+        ``,
+        `Per ogni vulnerabilità trovata:`,
+        `- Indica il livello di rischio: Critical / High / Medium / Low`,
+        `- Cita il file e il numero di riga specifico quando possibile`,
+        `- Spiega come un attaccante potrebbe sfruttarla`,
+        `- Fornisci la remediation concreta con codice corretto`,
+        ``,
+        `Verifica obbligatoriamente (se applicabile allo stack):`,
+        `- Next.js: Server Actions esposte, variabili NEXT_PUBLIC_, CVE-2025-29927, IDOR`,
+        `- Stripe: verifica firma webhook, prezzo server-side, success page, idempotency, chiavi esposte`,
+        `- Supabase: RLS mancante, service role key, admin CRUD via client, anon key in .env.example`,
+        `- Auth: rate limiting, CSRF protection`,
+        `- General: error message leakage, logging in produzione, input validation`,
+        cveInstruction,
+        ``,
+        `Struttura il report con queste sezioni:`,
+        `1. ## 🚨 Vulnerabilità nel codice (ordinate per rischio)`,
+        `2. ## 📦 CVE Scan Dipendenze`,
+        `3. ## 📊 Tabella riepilogativa`,
+        ``,
+        `## Codice da analizzare:`,
+        ``,
+        code,
+        pkgSection,
+      ].join("\n");
+
+      console.error(`🔒 Security audit in corso...`);
+      const result = await callAgent("cybersecurity", task);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `## 🔒 Security Audit Report\n\n${result}`,
+          },
+        ],
+      };
     }
 
     // ── Tool: update_dependencies ─────────────────────────

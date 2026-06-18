@@ -57,6 +57,7 @@ function getMaxTokens(agentKey) {
     tester: 2048,
     web_designer: 3072,
     web_researcher: 2048,
+    cybersecurity: 8192,
   };
   return limits[agentKey] ?? 4096;
 }
