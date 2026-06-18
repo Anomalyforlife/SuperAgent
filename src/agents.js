@@ -211,10 +211,10 @@ Quando ricevi un package.json o una lista di dipendenze, esegui obbligatoriament
 
 **Come cercare CVE:**
 Hai accesso a web_search e web_fetch. Per ogni dipendenza rilevante usa questi approcci:
-1. Cerca su NIST NVD: `web_search("CVE <package-name> <version> site:nvd.nist.gov")`
-2. Cerca nel GitHub Advisory Database: `web_search("GHSA <package-name> <version> vulnerability")`
-3. Per Next.js, React, e framework principali: `web_fetch("https://github.com/<org>/<repo>/security/advisories")`
-4. Per npm: `web_search("<package-name> npm security vulnerability <version>")`
+1. Cerca su NIST NVD: \`web_search("CVE <package-name> <version> site:nvd.nist.gov")\`
+2. Cerca nel GitHub Advisory Database: \`web_search("GHSA <package-name> <version> vulnerability")\`
+3. Per Next.js, React, e framework principali: \`web_fetch("https://github.com/<org>/<repo>/security/advisories")\`
+4. Per npm: \`web_search("<package-name> npm security vulnerability <version>")\`
 
 **Priorità di ricerca CVE:**
 Concentrati sui pacchetti che gestiscono: autenticazione, crittografia, parsing di input utente, HTTP, database, payment processing, file system, esecuzione di comandi. Salta utility pure (lodash di tipo, date-fns, etc.) a meno che la versione sia molto vecchia.
