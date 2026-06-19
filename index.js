@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-import { config } from "dotenv";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-config({ path: join(__dirname, ".env"), quiet: true });
-
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -13,11 +6,8 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import Anthropic from "@anthropic-ai/sdk";
 import { AGENTS } from "./src/agents.js";
 import { callAgent, executePlan, formatOutput } from "./src/runner.js";
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const TOOLS = [
   {
@@ -412,11 +402,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // ============================================================
 
 async function main() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error("❌ ANTHROPIC_API_KEY non impostata nel file .env");
-    process.exit(1);
-  }
-
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("✅ Super-Agent MCP Server avviato");
