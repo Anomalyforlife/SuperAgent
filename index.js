@@ -21,6 +21,10 @@ const TOOLS = [
           type: "string",
           description: "La richiesta completa da elaborare con il sistema super-agent",
         },
+        project_path: {
+          type: "string",
+          description: "Percorso assoluto della directory del progetto su cui lavorare (opzionale). Gli agenti useranno questo come working directory e potranno leggere/modificare i file localmente.",
+        },
         clarifications: {
           type: "string",
           description: "Risposte dell'utente alle domande chiarificatrici dell'interpreter (opzionale, usato nel secondo giro dopo che l'interpreter ha chiesto chiarimenti)",
@@ -52,6 +56,10 @@ const TOOLS = [
         context: {
           type: "string",
           description: "Contesto opzionale da passare all'agente (es. codice già scritto, ricerche precedenti)",
+        },
+        project_path: {
+          type: "string",
+          description: "Percorso assoluto della directory del progetto su cui lavorare (opzionale). L'agente userà questo come working directory e potrà leggere/modificare i file localmente.",
         },
       },
       required: ["agent", "task"],
@@ -102,8 +110,12 @@ const TOOLS = [
           type: "string",
           description: "Contenuto del package.json (opzionale ma consigliato: abilita il CVE scan automatico su tutte le dipendenze)",
         },
+        project_path: {
+          type: "string",
+          description: "Percorso assoluto della directory del progetto (opzionale). Se fornito, l'agente cybersecurity leggerà direttamente i file sorgente senza che tu debba incollarli. Può essere usato insieme a 'code' o in alternativa.",
+        },
       },
-      required: ["code"],
+      required: [],
     },
   },
 ];
@@ -137,11 +149,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // ── Tool: call_single_agent ────────────────────────────
     if (name === "call_single_agent") {
-      const { agent, task, context } = args;
+      const { agent, task, context, project_path } = args;
       const agentInfo = AGENTS[agent];
 
-      console.error(`🎯 Chiamata diretta a ${agentInfo?.emoji} ${agent}`);
-      const result = await callAgent(agent, task, context || "");
+      console.error(`🎯 Chiamata diretta a ${agentInfo?.emoji} ${agent}${project_path ? ` (cwd: ${project_path})` : ""}`);
+      const result = await callAgent(agent, task, context || "", project_path);
 
       return {
         content: [
@@ -155,7 +167,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // ── Tool: run_agents (orchestrated) ───────────────────
     if (name === "run_agents") {
-      const { request, clarifications, approved_plan } = args;
+      const { request, clarifications, approved_plan, project_path } = args;
 
       // GIRO 3: l'utente ha approvato il piano → eseguilo direttamente
       if (approved_plan) {
@@ -168,10 +180,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
 
-        console.error(`▶️  Piano approvato, esecuzione in corso...`);
+        console.error(`▶️  Piano approvato, esecuzione in corso...${project_path ? ` (cwd: ${project_path})` : ""}`);
         console.error(`📋 ${plan.execution_plan.length} step con agenti: ${plan.agents_needed.join(", ")}`);
 
-        const results = await executePlan(plan, request);
+        const results = await executePlan(plan, request, { cwd: project_path });
         const output = formatOutput(plan, results);
         return { content: [{ type: "text", text: output }] };
       }
@@ -263,7 +275,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // ── Tool: security_audit ──────────────────────────────
     if (name === "security_audit") {
-      const { code, stack, focus, package_json } = args;
+      const { code, stack, focus, package_json, project_path } = args;
+
+      if (!code && !project_path) {
+        return {
+          content: [{ type: "text", text: `❌ Fornisci almeno uno tra \`code\` (codice da analizzare) e \`project_path\` (percorso del progetto).` }],
+          isError: true,
+        };
+      }
 
       const focusLine = focus ? `\n\nArea di focus richiesta: **${focus}**` : "";
       const stackLine = stack ? `\nStack tecnologico: **${stack}**` : "";
@@ -272,10 +291,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         : "";
       const cveInstruction = package_json
         ? `- **CVE scan**: per ogni dipendenza nel package.json esegui una ricerca web per CVE note. Usa web_search e web_fetch su NIST NVD e GitHub Advisory Database. Riporta CVE ID, CVSS score, versione affetta, fixed-in e comando di aggiornamento.`
-        : `- **CVE scan**: non è stato fornito un package.json. Se riesci a dedurre le dipendenze dallo stack o dal codice, cerca comunque CVE per i framework principali rilevati.`;
+        : `- **CVE scan**: non è stato fornito un package.json. Se riesci a dedurre le dipendenze dallo stack o dal codice, cerca comunque CVE per i framework principali rilevati.${project_path ? " Usa Glob per trovare il package.json nel progetto e leggilo." : ""}`;
+
+      const codeSection = project_path
+        ? `## Progetto da analizzare:\nPercorso: ${project_path}\nUsa i tool Read, Glob e Grep per esplorare autonomamente il codice sorgente. Inizia con Glob per ottenere la struttura dei file, poi leggi i file più rilevanti per la sicurezza (route, auth, pagamenti, API, config).`
+        : `## Codice da analizzare:\n\n${code}`;
 
       const task = [
-        `Esegui un security audit completo del seguente codice.${stackLine}${focusLine}`,
+        `Esegui un security audit completo.${stackLine}${focusLine}`,
         ``,
         `Per ogni vulnerabilità trovata:`,
         `- Indica il livello di rischio: Critical / High / Medium / Low`,
@@ -296,14 +319,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         `2. ## 📦 CVE Scan Dipendenze`,
         `3. ## 📊 Tabella riepilogativa`,
         ``,
-        `## Codice da analizzare:`,
-        ``,
-        code,
+        codeSection,
         pkgSection,
       ].join("\n");
 
-      console.error(`🔒 Security audit in corso...`);
-      const result = await callAgent("cybersecurity", task);
+      console.error(`🔒 Security audit in corso...${project_path ? ` (cwd: ${project_path})` : ""}`);
+      const result = await callAgent("cybersecurity", task, "", project_path);
 
       return {
         content: [

@@ -8,6 +8,7 @@ const AGENTS = {
     name: "Interpreter",
     emoji: "🧠",
     model: "claude-sonnet-4-6",
+    allowedTools: [],
     systemPrompt: `Sei l'agente INTERPRETER, il cervello centrale del sistema super-agent.
 Il tuo compito è analizzare la richiesta dell'utente e decidere se hai abbastanza informazioni per creare un piano di esecuzione, oppure se devi prima fare domande chiarificatrici.
 
@@ -75,6 +76,7 @@ Regole per il piano:
     name: "Programmer",
     emoji: "💻",
     model: "claude-sonnet-4-6",
+    allowedTools: ["Read", "Glob", "Grep", "Edit", "Write", "Bash"],
     systemPrompt: `Sei l'agente PROGRAMMER, un senior software engineer con 15 anni di esperienza.
 Le tue competenze includono: JavaScript/TypeScript, Python, Java, Rust, Go, C++, architetture software, design pattern, algoritmi, ottimizzazione delle performance, code review.
 
@@ -92,8 +94,7 @@ Linee guida:
     name: "Cybersecurity",
     emoji: "🔒",
     model: "claude-sonnet-4-6",
-    useWebSearch: true,
-    useWebFetch: true,
+    allowedTools: ["Read", "Glob", "Grep", "WebSearch", "WebFetch"],
     systemPrompt: `Sei l'agente CYBERSECURITY, un esperto di sicurezza informatica certificato (OSCP, CEH, CISSP).
 Le tue competenze includono: OWASP Top 10, penetration testing, threat modeling, secure coding, crittografia, network security, vulnerability assessment, incident response.
 
@@ -237,6 +238,7 @@ Includi una sezione "## 📦 CVE Scan Dipendenze" nel tuo report con tutti i ris
     name: "Docs Writer",
     emoji: "📄",
     model: "claude-haiku-4-5-20251001",
+    allowedTools: ["Read", "Glob", "Grep", "Edit", "Write"],
     systemPrompt: `Sei l'agente DOCS WRITER, uno technical writer senior specializzato in documentazione software.
 Le tue competenze includono: README, API docs, wiki, changelog, docstring, tutorial, guide utente, architettura documentale.
 
@@ -254,6 +256,8 @@ Linee guida:
     name: "Web Researcher",
     emoji: "🔍",
     model: "claude-haiku-4-5-20251001",
+    allowedTools: ["WebSearch", "WebFetch"],
+    useContext7: true,
     systemPrompt: `Sei l'agente WEB RESEARCHER, un esperto di ricerca e sintesi delle informazioni.
 Le tue competenze includono: ricerca tecnica, analisi di documentazione, confronto di tecnologie, identificazione di best practice, raccolta di dati aggiornati, scraping e lettura di pagine web.
 
@@ -282,6 +286,7 @@ Linee guida:
     name: "Web Designer",
     emoji: "🎨",
     model: "claude-haiku-4-5-20251001",
+    allowedTools: ["Read", "Glob", "Grep", "Edit", "Write"],
     systemPrompt: `Sei l'agente WEB DESIGNER, un UI/UX designer e frontend developer senior.
 Le tue competenze includono: HTML/CSS/JS, React, design system, accessibilità (WCAG), responsive design, animazioni, Tailwind CSS, Figma-to-code, performance frontend.
 
@@ -300,6 +305,7 @@ Linee guida:
     name: "Tester",
     emoji: "🧪",
     model: "claude-haiku-4-5-20251001",
+    allowedTools: ["Read", "Glob", "Grep", "Bash"],
     systemPrompt: `Sei l'agente TESTER, un QA engineer e test automation specialist senior.
 Le tue competenze includono: unit testing, integration testing, e2e testing, test planning, bug reporting, edge cases, performance testing, Jest, Pytest, JUnit, Cypress, Playwright.
 
@@ -317,6 +323,7 @@ Linee guida:
     name: "Mobile Developer",
     emoji: "📱",
     model: "claude-sonnet-4-6",
+    allowedTools: ["Read", "Glob", "Grep", "Edit", "Write", "Bash"],
     systemPrompt: `Sei l'agente MOBILE DEVELOPER, uno sviluppatore mobile senior con 12 anni di esperienza.
 Le tue competenze coprono sia il mobile web che lo sviluppo di app native e cross-platform:
 
