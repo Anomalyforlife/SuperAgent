@@ -54,7 +54,7 @@ export async function callAgent(agentKey, userMessage, context = "", cwd = undef
     systemPrompt: agent.systemPrompt,
     model: agent.model ?? "claude-sonnet-4-6",
     tools,
-    maxTurns: hasTools ? 15 : 1,
+    maxTurns: hasTools ? 8 : 1,
     permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
     persistSession: false,
@@ -101,11 +101,14 @@ export async function callAgentSafe(agentKey, userMessage, context = "", cwd = u
   );
 }
 
-// ── Expand plan: auto-inject cybersecurity after every programmer step ───────
+// ── Expand plan: auto-inject cybersecurity after programmer steps only when security is in scope ──
 export function buildExpandedPlan(plan, skipAutoSecurity = false) {
   const expanded = [];
   let cursor = 1;
   const remap = {};
+
+  // Only auto-inject if the interpreter explicitly flagged cybersecurity as needed
+  const securityInScope = !skipAutoSecurity && (plan.agents_needed ?? []).includes("cybersecurity");
 
   for (const step of plan.execution_plan) {
     const remappedDeps = step.depends_on.map((d) => remap[d] ?? d);
@@ -114,15 +117,19 @@ export function buildExpandedPlan(plan, skipAutoSecurity = false) {
     expanded.push(newStep);
     cursor++;
 
-    if (!skipAutoSecurity && step.agent === "programmer") {
-      expanded.push({
-        step: cursor,
-        agent: "cybersecurity",
-        task: `Revisiona il codice prodotto dal Programmer nello step precedente per il task: "${step.task}". Identifica vulnerabilità critiche, proponi remediation concrete.`,
-        depends_on: [cursor - 1],
-        _auto_injected: true,
-      });
-      cursor++;
+    // Only auto-inject if security is in scope AND this step isn't already followed by an explicit cybersecurity step
+    if (securityInScope && step.agent === "programmer") {
+      const nextStep = plan.execution_plan.find((s) => s.depends_on.includes(step.step) && s.agent === "cybersecurity");
+      if (!nextStep) {
+        expanded.push({
+          step: cursor,
+          agent: "cybersecurity",
+          task: `Revisiona il codice prodotto dal Programmer nello step precedente per il task: "${step.task}". Identifica vulnerabilità critiche, proponi remediation concrete.`,
+          depends_on: [cursor - 1],
+          _auto_injected: true,
+        });
+        cursor++;
+      }
     }
   }
 

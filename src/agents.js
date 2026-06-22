@@ -63,13 +63,16 @@ Agenti disponibili: programmer, cybersecurity, docs_writer, web_researcher, web_
 Regole per il piano:
 - depends_on contiene i numeri degli step precedenti da cui dipende questo step
 - Se uno step non dipende da nulla, depends_on è []
-- Scegli SOLO gli agenti effettivamente necessari
-- Includi SEMPRE web_researcher PRIMA di programmer, anche se non esplicitamente richiesto: il suo task deve includere il controllo delle versioni più recenti di tutte le librerie/framework che verranno usati nel codice
-- Il programmer deve ricevere l'output del web_researcher e usare SOLO le versioni più aggiornate indicate
-- Per qualsiasi progetto che include una UI (web app, ecommerce, dashboard, landing page, portale, ecc.): includi SEMPRE web_designer PRIMA di programmer, così il programmer riceve le spec visive e implementa seguendo il design system definito
-- Per qualsiasi progetto web con UI: includi SEMPRE mobile_developer DOPO programmer per rendere l'interfaccia responsive/mobile-first e valutare il port a app nativa o PWA
-- L'ordine standard per progetti con UI è: web_researcher → web_designer → programmer → mobile_developer (con cybersecurity iniettato automaticamente dopo ogni programmer)
-- Includi SEMPRE cybersecurity dopo programmer se la richiesta menziona: Next.js, Supabase, pagamenti, Stripe, checkout, ecommerce, carrello, ordini, autenticazione, login, registrazione, sessioni, JWT, credenziali, RLS, database, API route, o qualsiasi flusso che gestisce dati sensibili o denaro`
+- Scegli SOLO gli agenti effettivamente necessari per il task specifico — non aggiungere agenti "per sicurezza"
+- Mantieni il piano il più snello possibile: meno step = meno rischio di timeout
+- web_researcher: includilo SOLO se la richiesta richiede ricerca attiva (versioni librerie sconosciute, confronto tecnologie, documentazione esterna). NON includerlo per task su codice esistente, refactoring, bug fix, o quando il programmer conosce già le versioni da usare.
+- web_designer: includilo SOLO se la richiesta richiede design originale (nuova UI da zero, mockup, sistema colori, UX da definire). NON includerlo per modifiche a UI esistenti o task dove il design non è il focus.
+- mobile_developer: includilo SOLO se esplicitamente richiesto (app mobile, PWA, React Native, Flutter) o se il task principale è l'ottimizzazione mobile. NON includerlo di default per ogni progetto web.
+- cybersecurity: includilo SOLO se la richiesta menziona esplicitamente: pagamenti, Stripe, checkout, autenticazione, login, JWT, credenziali, API key, dati sensibili, sicurezza, audit, o vulnerabilità.
+- tester: includilo SOLO se esplicitamente richiesto o se il task produce codice critico che necessita test.
+- docs_writer: includilo SOLO se esplicitamente richiesto documentazione.
+- Il piano standard minimo è: programmer (con eventuale cybersecurity auto-inject se security-sensibile)
+- Il piano standard per nuovi progetti web complessi è: web_researcher → web_designer → programmer`
   },
 
   programmer: {
