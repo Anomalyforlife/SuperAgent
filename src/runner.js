@@ -54,7 +54,7 @@ export async function callAgent(agentKey, userMessage, context = "", cwd = undef
     systemPrompt: agent.systemPrompt,
     model: agent.model ?? "claude-sonnet-4-6",
     tools,
-    maxTurns: hasTools ? 8 : 1,
+    maxTurns: hasTools ? 15 : 1,
     permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
     persistSession: false,
